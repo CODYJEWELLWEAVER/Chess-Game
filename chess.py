@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 import time
 import copy
+import sys
 
-#TODO Finish testing top pawn move checker and refactor all move checking code for pawn
+#TODO more play testing, and comments
 
 def input_process(string): 
     return string.strip().lower()
 
-# prints board 
 def print_board(board):
     row_id = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     pieces = ['Q', 'B', 'N', 'R', 'P']
@@ -31,26 +31,41 @@ def print_board(board):
         print('\n\n' + top_dead + col_A + col_B + col_C + col_D + col_E + col_F + col_G + col_H + bottom_dead)
     print('\n\n')    
 
-def move_piece(board, turn, bottom_turn):
-    piece = turn[0]
-    move_to = turn[1]
+def move_piece(board, piece, move_to):
     row_index = {'a':0, 'b':1, 'c':2, 'd':3, 'e':4, 'f':5, 'g':6, 'h':7}
-    columns = [0,1,2,3,4,5,6,7]
-    try:
-        row = row_index[piece[0]]
-        column = columns[int(piece[-1])]
-        m_row = row_index[move_to[0]]
-        m_column = columns[int(move_to[-1])]
-    except:
-        return False
-    if bottom_turn:
-        prefix = 'b'
+    p_row = row_index[piece[0]]
+    p_column = int(piece[-1])
+    m_row = row_index[move_to[0]]
+    m_column = int(move_to[-1])
+    
+    piece_to_move = board.rows[p_row][p_column]
+    dead_piece = board.rows[m_row][m_column]
+
+    board.rows[m_row][m_column] = piece_to_move
+    board.rows[p_row][p_column] = 'x'
+
+    if dead_piece[0] == 'b':
+        if dead_piece[-1] == 'Q':
+            board.bottom_dead[0] += 1
+        elif dead_piece[-1] == 'B':
+            board.bottom_dead[1] += 1
+        elif dead_piece[-1] == 'N':
+            board.bottom_dead[2] += 1
+        elif dead_piece[-1] == 'R':
+            board.bottom_dead[3] += 1
+        elif dead_piece[-1] == 'P':
+            board.bottom_dead[4] += 1
     else:
-        prefix = 't'
-    if board.rows[row][column][0] != prefix:
-        print('YOU CANNOT MOVE THAT PIECE!')
-        return 'invalid'
-    is_valid_move = valid_move_check(board, row, column, move_to)
+        if dead_piece[-1] == 'Q':
+            board.top_dead[0] += 1
+        elif dead_piece[-1] == 'B':
+            board.top_dead[1] += 1
+        elif dead_piece[-1] == 'N':
+            board.top_dead[2] += 1
+        elif dead_piece[-1] == 'R':
+            board.top_dead[3] += 1
+        elif dead_piece[-1] == 'P':
+            board.top_dead[4] += 1
 
 def is_valid_move(board, piece, move_to):
     row_index = {'a':0, 'b':1, 'c':2, 'd':3, 'e':4, 'f':5, 'g':6, 'h':7}
@@ -116,7 +131,7 @@ def is_valid_move(board, piece, move_to):
         elif m_row < p_row:
             if m_column > p_column:
                 for i in range(1, m_column - p_column):
-                    if board.rows[p_row - i][p_column - i] != 'x':
+                    if board.rows[p_row - i][p_column + i] != 'x':
                         return False
             elif m_column < p_column:
                 for i in range(1, p_column - m_column):
@@ -233,6 +248,29 @@ def is_valid_piece(board, turn, piece):
         print("INVALID CHOICE!")
         return False  
 
+def exchange_piece(board, bottom_turn):
+    if bottom_turn:
+        for column in range(len(board.rows[0])):
+            if board.rows[0][column] == 'bP':
+                print("You have a pawn that you could upgrade.\nIf you would like to upgrade it enter the suffix of the piece you want ot exchange it for or if you don't want to exchange it enter 'no'. ")
+                exchange = input_process(input(">>> "))
+                if exchange == 'no':
+                    break
+                elif exchange.upper() in ['B', 'N', 'R', 'Q']:
+                    board.rows[0][column] = 'b' + exchange.upper()
+                    return True
+    else:
+        for column in range(len(board.rows[7])):
+            if board.rows[7][column] == 'tP':
+                print("You have a pawn that you could upgrade.\nIf you would like to upgrade it enter the suffix of the piece you want ot exchange it for or if you don't want to exchange it enter 'no'. ")
+                exchange = input_process(input(">>> "))
+                if exchange == 'no':
+                    break
+                elif exchange.upper() in ['B', 'N', 'R', 'Q']:
+                    board.rows[7][column] = 't' + exchange.upper()
+                    return True
+    return False
+
 def king_position(board, bottom_turn):
     if bottom_turn:
         player = 'b'
@@ -344,38 +382,30 @@ def player_in_check(board, bottom_turn, king_row, king_column):
         else:
             break
     # knight checks
-    try:
+    if (king_row - 2) in range(0, 8) and (king_column - 1) in range(0, 8):
         if board.rows[king_row - 2][king_column - 1][-1] == 'N' and board.rows[king_row - 2][king_column - 1][0] != player:
             return king_row - 2, king_column - 1
-    except: pass
-    try:
+    if (king_row - 2) in range(0, 8) and (king_column + 1) in range(0, 8):
         if board.rows[king_row - 2][king_column + 1][-1] == 'N' and board.rows[king_row - 2][king_column + 1][0] != player:
             return king_row - 2, king_column + 1
-    except: pass
-    try:
+    if (king_row + 2) in range(0, 8) and (king_column - 1) in range(0, 8):
         if board.rows[king_row + 2][king_column - 1][-1] == 'N' and board.rows[king_row + 2][king_column - 1][0] != player:
             return king_row + 2, king_column -1
-    except: pass
-    try:
+    if (king_row + 2) in range(0, 8) and (king_column + 1) in range(0, 8):
         if board.rows[king_row + 2][king_column + 1][-1] == 'N' and board.rows[king_row + 2][king_column + 1][0] != player:
             return king_row + 2, king_column + 1
-    except: pass
-    try:
+    if (king_row + 1) in range(0, 8) and (king_column - 2) in range(0, 8):
         if board.rows[king_row + 1][king_column - 2][-1] == 'N' and board.rows[king_row + 1][king_column - 2][0] != player:
             return king_row + 1, king_column - 2
-    except: pass
-    try:
+    if (king_row - 1) in range(0, 8) and (king_column - 2) in range(0, 8):
         if board.rows[king_row - 1][king_column - 2][-1] == 'N' and board.rows[king_row - 1][king_column - 2][0] != player:
             return king_row - 1, king_column - 2
-    except: pass
-    try:
+    if (king_row - 1) in range(0, 8) and (king_column + 2) in range(0, 8):
         if board.rows[king_row - 1][king_column + 2][-1] == 'N' and board.rows[king_row - 1][king_column + 2][0] != player:
             return king_row - 1, king_column + 2
-    except: pass
-    try:
+    if (king_row + 1) in range(0, 8) and (king_column + 2) in range(0, 8):
         if board.rows[king_row + 1][king_column + 2][-1] == 'N' and board.rows[king_row + 1][king_column + 2][0]!= player:
             return king_row + 1, king_column + 2
-    except: pass
     return False
 
 def player_in_checkmate(board, bottom_turn, king_row, king_column):
@@ -516,12 +546,36 @@ def player_in_checkmate(board, bottom_turn, king_row, king_column):
                     return False
         return True
 
+def castle_king(board, bottom_turn, king_row, king_column):
+    if bottom_turn:
+        if king_row == 7 and king_column == 4:
+            if board.rows[7][5] == 'x' and board.rows[7][6] == 'x':
+                if board.rows[7][7] == 'bR':
+                    u_input = input_process(input("You can castle your king, do you want to? (yes/no) : "))
+                    if u_input == 'yes':
+                        move_piece(board, ['h', 7], ['h', 5])
+                        board.rows[7][4] = 'x' 
+                        board.rows[7][6] = 'bK'
+                        return True
+    else:
+        if king_row == 0 and king_column == 4:
+            if board.rows[0][5] == 'x' and board.rows[0][6] == 'x':
+                if board.rows[0][7] == 'tR':
+                    u_input = input_process(input("You can castle your king, do you want to? (yes/no) : "))
+                    if u_input == 'yes':
+                        move_piece(board, ['a', 7], ['a', 5])
+                        board.rows[0][4] = 'x'
+                        board.rows[0][6] = 'tK'
+                        return True
+    return False
+
 def main():
     first_run = True
     bottom_turn = True
     in_checkmate = False
     in_check = False
-
+    conceded = False
+    
     """ 
     top = t
     bottom = b
@@ -532,40 +586,30 @@ def main():
     rook = R
     pawn = P """
     # rows board is set to on game start
-    """default_rows = [ ['tR', 'tN', 'tB', 'tQ', 'tK', 'tB', 'tN', 'tR'],
-                     ['tP', 'tP', 'tP', 'tP', 'tP', 'tP', 'tP', 'tP'],
-                     ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
-                     ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
-                     ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
-                     ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
-                     ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP'],
-                     ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'] ]"""
+    default_rows = [ ['tR', 'x', 'x', 'x', 'x', 'tR', 'tK', 'x'],
+                     ['tP', 'tP', 'x', 'x', 'tP', 'tP', 'tB', 'tP'],
+                     ['x', 'x', 'tN', 'tP', 'x', 'tN', 'tP', 'x'],
+                     ['tQ', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
+                     ['x', 'x', 'bP', 'bN', 'bP', 'x', 'x', 'x'],
+                     ['x', 'bP', 'bN', 'x', 'x', 'bP', 'x', 'x'],
+                     ['bP', 'bB', 'x', 'x', 'x', 'x', 'bP', 'bP'],
+                     ['bR', 'x', 'x', 'bQ', 'x', 'bR', 'bK', 'x'] ]
 
-    # rows for testing 
-    default_rows = [ ['x', 'x', 'x', 'x', 'x', 'bK', 'x', 'x'],
-                   ['tQ', 'x', 'x', 'tN', 'x', 'x', 'x', 'tR'],
-                   ['x', 'x', 'bQ', 'x', 'x', 'x', 'x', 'x'],
-                   ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
-                   ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
-                   ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'],
-                   ['x', 'bN', 'bP', 'x', 'x', 'x', 'tQ', 'x'],
-                   ['x', 'x', 'x', 'x', 'tQ', 'x', 'x', 'tK'] ]
-
+    sys.stdout.write("\x1b[8;40;120t")
     print("WELCOME!\n")
     time.sleep(1)
-
-    # board
-    class Game_Board:
-        """This class represents the board for the current game, everything references this. Rows 
-        is the current board represented using a list holding 8 nested lists, each nested list contains
-        8 items, positions on the board. The two lists for the dead pieces simply hold an integer representing 
-        how many of each respective piece for the sides are dead. The pieces are in the order: Q B N R P"""
-        rows = default_rows
-        top_dead = [0, 0, 0, 0, 0]
-        bottom_dead = [0, 0, 0, 0, 0]
     
     while True:
-        menu = ''
+        # board
+        class Game_Board:
+            """This class represents the board for the current game, everything references this. Rows 
+            is the current board represented using a list holding 8 nested lists, each nested list contains
+             8 items, positions on the board. The two lists for the dead pieces simply hold an integer representing 
+            how many of each respective piece for the sides are dead. The pieces are in the order: Q B N R P"""
+            rows = default_rows
+            top_dead = [0, 0, 0, 0, 0]
+            bottom_dead = [0, 0, 0, 0, 0]
+
         while True:
             menu = input_process(input("Enter 'play' to play a game or 'quit' to exit the game. "))
             if menu == 'quit' or menu == 'play':
@@ -574,14 +618,29 @@ def main():
             break
 
         while True:
-            print('\n' * 3)
-            print_board(Game_Board)
-
             if first_run:
-                print("To play pick a piece on the board with a lettered row and a numbered column such as (A0)")
+                print("\nSuffix key:\nking = K\nqueen = Q\nbishop = B\nknight = N\nrook = R\npawn = P")
+                print("The bottom player's pieces have a lowercase b as a prefix\n")
+                print("The top player's pieces have a lowercase t as a prefix\n")
+                print("To play pick a piece on the board with a lettered row and a numbered column such as (A0)\n")
+                time.sleep(3)
+                u_input = input("When you are done reading hit enter.")
                 first_run = False
 
+            print('\n\n\n')
+            print_board(Game_Board)
+
             king_row, king_column = king_position(Game_Board, bottom_turn)
+
+            castled = castle_king(Game_Board, bottom_turn, king_row, king_column)
+            if castled:
+                print_board(Game_Board)
+                bottom_turn = not bottom_turn
+                continue
+
+            piece_exchanged = exchange_piece(Game_Board, bottom_turn)
+            if piece_exchanged:
+                print_board(Game_Board)
 
             if player_in_check(Game_Board, bottom_turn, king_row, king_column) != False:
                 if player_in_checkmate(Game_Board, bottom_turn, king_row, king_column):
@@ -592,29 +651,53 @@ def main():
 
             valid_piece = False
             while not valid_piece:
+                print("If you want to concede enter 'concede'\n")
                 if bottom_turn:
                     piece = input_process(input("Bottom Player >>> "))
                 else:
                     piece = input_process(input("Top Player >>> "))
-                print(piece)
-                if piece == 'quit':
+                if piece == 'quit' or 'concede':
                     break
                 valid_piece = is_valid_piece(Game_Board, bottom_turn, piece)
             if piece == 'quit':
                 break
+            if piece == 'concede':
+                conceded = True
 
             valid_move = False
             while not valid_move:
+                print("\nIf you want to move a different piece enter 'CP'\n")
                 move_to = input_process(input("Where do you want to move this piece? >>> "))
                 if move_to == 'quit':
                     break
-                if is_valid_move(Game_Board, piece, move_to) and not player_in_check(Game_Board, bottom_turn, king_row, king_column):
-                    valid_move = True 
-                if not valid_move:
-                    print("INVALID CHOICE!")
+                if move_to == 'cp':
+                    valid_piece = False
+                    while not valid_piece:
+                        if bottom_turn:
+                            piece = input_process(input("select a new piece >>> "))
+                        else:
+                            piece = input_process(input("select a new piece >>> "))
+                        if piece == 'quit':
+                            break
+                        valid_piece = is_valid_piece(Game_Board, bottom_turn, piece)
+                        if piece == 'quit':
+                            break
+                elif is_valid_move(Game_Board, piece, move_to):
+                    class test_board:
+                        rows = copy.deepcopy(Game_Board.rows)
+                        bottom_dead = copy.deepcopy(Game_Board.bottom_dead)
+                        top_dead = copy.deepcopy(Game_Board.top_dead)
+                    move_piece(test_board, piece, move_to)
+                    test_king_row, test_king_column = king_position(test_board, bottom_turn)
+                    if player_in_check(test_board, bottom_turn, test_king_row, test_king_column) == False:
+                        valid_move = True 
+                elif not valid_move:
+                    print("\nThat is not a valid move!\n")
             if move_to == "quit":
-                break    
-            
+                break  
+            elif valid_move:
+                move_piece(Game_Board, piece, move_to) 
+
             bottom_turn = not bottom_turn
 
         if in_checkmate:
@@ -622,6 +705,12 @@ def main():
                 print("The top player has won! Congrats.")
             else:
                 print("The bottom player has won! Congrats.")
+
+        if conceded:
+            if bottom_turn:
+                print("The bottom player has conceded the game.")
+            else:
+                print("The top player has conceded the game.")
 
 if __name__ == "__main__":
     main()
